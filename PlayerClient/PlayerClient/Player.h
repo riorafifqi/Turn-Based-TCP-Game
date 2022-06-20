@@ -15,8 +15,6 @@ class Player
 	Board board;
 public:
 	Player();
-	char* receiveData();
-	void sendData(char*);
 	bool move();
 	void connectToServer();
 	void getAnnounce();

@@ -73,6 +73,7 @@ void GameManager::createServerSocket()
             recv(player[i], bufName, MAX, 0);
             playersData[i].setName(bufName);
             
+            // Set mark to each player
             if (i == 0)
                 playersData[i].setMark('X');
             else
@@ -85,6 +86,7 @@ void GameManager::createServerSocket()
     }
 
     cout << "Starting Game.... " << endl;
+    // broadcast empty board
     broadcastBoard();
 }
 
@@ -108,14 +110,14 @@ bool GameManager::move()
 {
     int turn;
 
-    if (checkWin())
+    if (checkWin())     // if someone win or board is full, return false
         return false;
 
     for (int i = 0; i < MAXPLAYER; i++)
     {
         if (currentPlayer == player[i])
         {
-            turn = 1;   // Sign for currentPlayer to move
+            turn = 1;   // Sign for currentPlayer to make a move
         }
         else
         {
@@ -126,26 +128,24 @@ bool GameManager::move()
 
     // recv data from currentPlayer about movement
     int moveBufX = 0, moveBufY = 0;
-    recv(currentPlayer, (char*)&moveBufX, sizeof(moveBufX), 0);
-    recv(currentPlayer, (char*)&moveBufY, sizeof(moveBufY), 0);
-    board.setMark(currentPlayerData.getMark(), moveBufX, moveBufY);
-    //cout << currentPlayer << "'s : " << moveBufX << " " << moveBufY << endl;
+    recv(currentPlayer, (char*)&moveBufX, sizeof(moveBufX), 0);     // receive 'X' Coordinate from player
+    recv(currentPlayer, (char*)&moveBufY, sizeof(moveBufY), 0);     // receive 'Y' Coordinate from player
+    board.setMark(currentPlayerData.getMark(), moveBufX, moveBufY); // input coordinate received to local board
 
-    broadcastBoard();
+    broadcastBoard();   // broadcast changed local board
 
     changeTurn();
 
-    
     return true;
 }
 
 bool GameManager::checkWin()
 {
-    if (board.getDiagonal() || board.getHorizontal() || board.getVertical())
+    if (board.getDiagonal() || board.getHorizontal() || board.getVertical())    // if there are same mark in diagonal, horizontal, or vertical
     {
         cout << "Someone is winning" << endl;
-        isWin = true;
-        changeTurn();
+        isWin = true;   
+        changeTurn();   // change turn to winning player
         winningPlayer = currentPlayer;
         return true;
     }
@@ -176,9 +176,10 @@ void GameManager::broadcastBoard()
     {
         for (int j = 0; j < 3; j++)
         {
+            // send each mark in row and column one by one to each player
             char boardBuf[MAX];
             memset(boardBuf, 0, MAX);
-            *boardBuf = board.getMark(i, j);
+            *boardBuf = board.getMark(i, j);    
             send(player[0], boardBuf, MAX, 0);
             send(player[1], boardBuf, MAX, 0);
         }
@@ -188,30 +189,30 @@ void GameManager::broadcastBoard()
 void GameManager::announceResult()
 {
     cout << "Game has ended" << endl;
-    int turn = 2;
-    string winMsg = "Congratulation! you win! ";
-    string drawMsg = "It's a draw! ";
-    char loseMsg[MAX] = "You lose! better luck next time!";
+    int turn = 2;   // to give a clue to player if game is ended
+    string winMsg = "Congratulation! you win! ";    // message for winner
+    string drawMsg = "It's a draw! ";   // message for both player if game is draw
+    char loseMsg[MAX] = "You lose! better luck next time!"; // message for loser
 
     for (int i = 0; i < MAXPLAYER; i++)
     {
-        if (send(player[i], (const char*)&turn, sizeof(turn), 0))
+        if (send(player[i], (const char*)&turn, sizeof(turn), 0))   // send a clue to each player if game is ended
         {
             cout << "Announcement sended" << endl;
         }
     }
 
-    if (isWin)
+    if (isWin)  // if there is a winner
     {
-        send(winningPlayer, winMsg.c_str(), sizeof(winMsg), 0);
+        send(winningPlayer, winMsg.c_str(), sizeof(winMsg), 0); // send winning player a winning message
         changeTurn();
-        int byteRecv = send(currentPlayer, loseMsg, MAX, 0);
+        send(currentPlayer, loseMsg, MAX, 0);   // send losing player a losing message
     }
-    else if (isDraw)
+    else if (isDraw)    // if board is full and no winner
     {
         for (int i = 0; i < MAXPLAYER; i++)
         {
-            send(player[i], drawMsg.c_str(), sizeof(drawMsg), 0);
+            send(player[i], drawMsg.c_str(), sizeof(drawMsg), 0);   // send each player a draw message
         }
     }
 
@@ -220,7 +221,7 @@ void GameManager::announceResult()
         char checkBuf[MAX];
         if (!recv(player[i], checkBuf, MAX, 0))     // waiting for players to close first
         {
-            closeServerSocket(server);
+            closeServerSocket(server);  // close server socket
         }
     }
 }

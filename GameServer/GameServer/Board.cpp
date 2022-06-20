@@ -95,6 +95,7 @@ bool Board::isFull()
 		{
 			if (board[i][j] == ' ')
 			{
+				// "count" increasing if there are an empty cell
 				count++;
 			}
 		}

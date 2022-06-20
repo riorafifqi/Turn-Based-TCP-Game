@@ -17,23 +17,8 @@ Player::Player()
     cin >> bufName;
     send(server, bufName, 4096, 0);
 
-    recvBoard();
-    board.Display();
-}
-
-char* Player::receiveData()
-{
-    char buf[MAX];
-
-    recv(server, buf, MAX, 0);
-
-    return buf;
-}
-
-void Player::sendData(char* buf)
-{
-    send(server, buf, MAX, 0);
-
+    recvBoard();        // receive empty board from server
+    board.Display();    // display board
 }
 
 bool Player::move()
@@ -41,49 +26,50 @@ bool Player::move()
     int moveBufX = 0, moveBufY = 0;
     int turnBuf;
 
-    recv(server, (char*)&turnBuf, sizeof(turnBuf), 0);
-    if (turnBuf == 2)
+    recv(server, (char*)&turnBuf, sizeof(turnBuf), 0);      // receive sign for player's act
+    if (turnBuf == 2)       // sign for player when game is ended and ready to receive annnouncement
     {
         return false;
     }
-    else if (turnBuf == 1)
+    else if (turnBuf == 1)  // sign for player to move
     {
         while(true) {
             cout << "Your turn" << endl;
 
             cout << "X : ";
-            cin >> moveBufX;
+            cin >> moveBufX;    // asking for 'X' coordinate
 
             cout << "Y : ";
-            cin >> moveBufY;
+            cin >> moveBufY;    // asking for 'Y' coordinate
 
-            if (board.isValid(moveBufX, moveBufY) == true)
+            if (board.isValid(moveBufX, moveBufY))
             {
-                break;
+                break;  // if coordinate is valid, break out of while loop
             }
-            else if (board.isValid(moveBufX, moveBufY) == false){
-                cout << "Move is illegal" << endl;
+            else if (!board.isValid(moveBufX, moveBufY)){
+                cout << "Move is illegal" << endl;  // else, send message and loop back to input 'X' and 'Y' coordinate again
             }
         }
 
+        // send 'X' and 'Y' coordinate to server
         send(server, (const char*)&moveBufX, sizeof(moveBufX), 0);
         send(server, (const char*)&moveBufY, sizeof(moveBufY), 0);
 
     }
     else if (turnBuf == 0)
     {
-        cout << "Waiting for opponent's turn " << endl;
+        cout << "Waiting for opponent's turn " << endl;     // other player is waiting for turn
     }
 
-    else
+    else // if player doesn't recv aign for server
     {
-        cout << "Server is down" << endl;
+        cout << "Server is down" << endl;   
         closeSocket();
         return false;
     }
 
-    recvBoard();
-    board.Display();
+    recvBoard();    // receive board broadcasted by server
+    board.Display();    // display board
 
     return true;
 }
@@ -126,10 +112,10 @@ void Player::getAnnounce()
 {
     cout << "Game has ended" << endl;
 
-    char bufAnnounce[MAX];
+    char bufAnnounce[MAX];      // preparing buffer for anouncement message
     memset(bufAnnounce, 0, MAX);
-    recv(server, bufAnnounce, MAX, 0);
-    cout << bufAnnounce << endl;
+    recv(server, bufAnnounce, MAX, 0);      // receive announcement message from server
+    cout << bufAnnounce << endl;    // print announcement message
 }
 
 void Player::closeSocket()
@@ -147,6 +133,7 @@ void Player::recvBoard()
     {
         for (int j = 0; j < 3; j++)
         {
+            // receive mark in each row and column from server and assign it to local board one by one
             char bufMark[MAX];
             recv(server, bufMark, MAX, 0);
             board.setMark(*bufMark, i, j);
